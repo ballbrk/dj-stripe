@@ -5,6 +5,7 @@
 .. moduleauthor:: Alex Kavanaugh (@kavdev)
 
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
 
@@ -15,7 +16,8 @@ from mock import patch
 
 from djstripe.mixins import PaymentsContextMixin, SubscriptionMixin
 from djstripe.models import Plan
-from tests import FAKE_CUSTOMER, FAKE_PLAN, FAKE_PLAN_II
+
+from . import FAKE_CUSTOMER, FAKE_PLAN, FAKE_PLAN_II
 
 
 class TestPaymentsContextMixin(TestCase):

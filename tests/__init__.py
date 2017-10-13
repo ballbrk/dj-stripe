@@ -10,6 +10,7 @@ A Fake or multiple fakes for each stripe object.
 Originally collected using API VERSION 2015-07-28.
 Updated to API VERSION 2016-03-07 with bogus fields.
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
 from datetime import datetime
@@ -363,6 +364,13 @@ FAKE_CHARGE = ChargeDict({
     "livemode": False,
     "metadata": {},
     "order": None,
+    "outcome": {
+        "network_status": "approved_by_network",
+        "reason": None,
+        "risk_level": "normal",
+        "seller_message": "Payment complete.",
+        "type": "authorized",
+    },
     "paid": True,
     "receipt_email": None,
     "receipt_number": None,
@@ -402,6 +410,13 @@ FAKE_CHARGE_II = ChargeDict({
     "livemode": False,
     "metadata": {},
     "order": None,
+    "outcome": {
+        "network_status": "declined_by_network",
+        "reason": "expired_card",
+        "risk_level": "normal",
+        "seller_message": "The bank returned the decline code `expired_card`.",
+        "type": "issuer_declined",
+    },
     "paid": False,
     "receipt_email": None,
     "receipt_number": None,
@@ -586,7 +601,6 @@ class Sources(object):
 
 
 class CustomerDict(dict):
-
     def save(self):
         return self
 
@@ -596,6 +610,13 @@ class CustomerDict(dict):
     @property
     def sources(self):
         return Sources(card_fakes=self["sources"]["data"])
+
+    def create_for_user(self, user):
+        from djstripe.models import Customer
+        stripe_customer = Customer.sync_from_stripe_data(self)
+        stripe_customer.subscriber = user
+        stripe_customer.save()
+        return stripe_customer
 
 
 FAKE_CUSTOMER = CustomerDict({
@@ -1158,6 +1179,28 @@ FAKE_EVENT_ACCOUNT_APPLICATION_DEAUTHORIZED = {
     },
 }
 
+# 2017-05-25 api changed request from id to object with id and idempotency_key
+# issue #541
+FAKE_EVENT_PLAN_REQUEST_IS_OBJECT = {
+    "id": "evt_1AcdbXXXXXXXXXXXXXXXXXXX",
+    "object": "event",
+    "api_version": "2017-06-05",
+    "created": 1499361420,
+    "data": {
+        "object": FAKE_PLAN,
+        "previous_attributes": {
+            "name": "Plan anual test4"
+        }
+    },
+    "livemode": False,
+    "pending_webhooks": 1,
+    "request": {
+        "id": "req_AyamqQWoi5AMR2",
+        "idempotency_key": None,
+    },
+    "type": "plan.updated",
+}
+
 FAKE_EVENT_CHARGE_SUCCEEDED = {
     "id": "evt_16YKQi2eZvKYlo2CT2oe5ff3",
     "object": "event",
@@ -1283,6 +1326,22 @@ FAKE_EVENT_INVOICE_DELETED = deepcopy(FAKE_EVENT_INVOICE_CREATED)
 FAKE_EVENT_INVOICE_DELETED.update({
     "id": "evt_187IHD2eZvKYlo2Cjkjsr34H",
     "type": "invoice.deleted"})
+
+FAKE_EVENT_INVOICE_UPCOMING = {
+    "id": "evt_187IHD2eZvKYlo2C6YKQi2bc",
+    "object": "event",
+    "api_version": "2017-02-14",
+    "created": 1501859641,
+    "data": {
+        "object": deepcopy(FAKE_INVOICE)
+    },
+    "livemode": False,
+    "pending_webhooks": 0,
+    "request": "req_8O4sB7hkDobZA",
+    "type": "invoice.upcoming",
+}
+del FAKE_EVENT_INVOICE_UPCOMING["data"]["object"]["id"]
+
 
 FAKE_EVENT_INVOICEITEM_CREATED = {
     "id": "evt_187IHD2eZvKYlo2C7SXedrZk",

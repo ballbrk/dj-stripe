@@ -5,9 +5,10 @@
 .. moduleauthor:: Alex Kavanaugh (@kavdev)
 
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-from copy import deepcopy
 import sys
+from copy import deepcopy
 
 from django.contrib.auth import get_user_model
 from django.test.testcases import TestCase
@@ -23,14 +24,14 @@ from . import FAKE_CUSTOMER
 class TestSyncSubscriber(TestCase):
 
     def setUp(self):
-        self.user = get_user_model().objects.create_user(username="testuser",
-                                                         email="test@example.com",
-                                                         password="123")
+        self.user = get_user_model().objects.create_user(
+            username="testuser", email="test@example.com", password="123"
+        )
 
     @patch("djstripe.models.Customer._sync_charges")
     @patch("djstripe.models.Customer._sync_invoices")
     @patch("djstripe.models.Customer._sync_subscriptions")
-    @patch("djstripe.models.Customer.api_retrieve", return_value=deepcopy(FAKE_CUSTOMER))
+    @patch("stripe.Customer.retrieve", return_value=deepcopy(FAKE_CUSTOMER))
     @patch("stripe.Customer.create", return_value=deepcopy(FAKE_CUSTOMER))
     def test_sync_success(self, stripe_customer_create_mock, api_retrieve_mock, _sync_subscriptions_mock,
                           _sync_invoices_mock, _sync_charges_mock):

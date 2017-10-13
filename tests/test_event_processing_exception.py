@@ -5,12 +5,13 @@
 .. moduleauthor:: Alex Kavanaugh (@kavdev)
 
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
 
 from django.test import TestCase
 
-from djstripe.models import EventProcessingException, Event
+from djstripe.models import Event, EventProcessingException
 
 
 class TestEventProcessingException(TestCase):

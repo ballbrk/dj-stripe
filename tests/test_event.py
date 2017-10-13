@@ -7,6 +7,7 @@
 .. moduleauthor:: Lee Skillen (@lskillen)
 
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
 
@@ -15,15 +16,16 @@ from django.test import TestCase
 from mock import Mock, patch
 
 from djstripe import webhooks
-from djstripe.models import Customer, Event, StripeError
-from tests import FAKE_EVENT_TRANSFER_CREATED, FAKE_CUSTOMER
+from djstripe.models import Event, StripeError
+
+from . import FAKE_CUSTOMER, FAKE_EVENT_TRANSFER_CREATED
 
 
 class EventTest(TestCase):
 
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="pydanny", email="pydanny@gmail.com")
-        self.customer = Customer.objects.create(subscriber=self.user, stripe_id=FAKE_CUSTOMER["id"], livemode=False)
+        self.customer = FAKE_CUSTOMER.create_for_user(self.user)
 
         patcher = patch.object(webhooks, 'call_handlers')
         self.addCleanup(patcher.stop)

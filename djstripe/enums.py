@@ -1,7 +1,10 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import operator
 from collections import OrderedDict
 
+from django.utils.six import add_metaclass, text_type
 from django.utils.translation import ugettext as _
-from django.utils.six import add_metaclass
 
 
 class EnumMetaClass(type):
@@ -27,9 +30,19 @@ class EnumMetaClass(type):
 
         for k, v in keys.items():
             classdict[v] = k
+
         classdict["__choices__"] = choices
         classdict["__members__"] = members
-        classdict["choices"] = tuple(choices.items())
+
+        # Note: Differences between Python 2.x and Python 3.x force us to
+        # explicitly use unicode here, and to explicitly sort the list. In
+        # Python 2.x, class members are unordered and so the ordering will
+        # vary on different systems based on internal hashing. Without this
+        # Django will continually require new no-op migrations.
+        classdict["choices"] = tuple(
+            (text_type(k), text_type(v))
+            for k, v in sorted(choices.items(), key=operator.itemgetter(0))
+        )
 
         return type.__new__(self, name, bases, classdict)
 
@@ -120,12 +133,22 @@ class PayoutFailureCode(Enum):
     unsupported_card = _("Card no longer supported.")
 
 
+class PayoutMethod(Enum):
+    standard = _("Standard")
+    instant = _("Instant")
+
+
 class PayoutStatus(Enum):
     paid = _("Paid")
     pending = _("Pending")
     in_transit = _("In transit")
     canceled = _("Canceled")
     failed = _("Failed")
+
+
+class PayoutType(Enum):
+    bank_account = _("Bank account")
+    card = _("Card")
 
 
 class PlanInterval(Enum):

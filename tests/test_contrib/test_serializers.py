@@ -7,26 +7,27 @@
 
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
-from mock import patch, PropertyMock
+from mock import PropertyMock, patch
 
-from djstripe.contrib.rest_framework.serializers import SubscriptionSerializer, CreateSubscriptionSerializer
+from djstripe.contrib.rest_framework.serializers import CreateSubscriptionSerializer, SubscriptionSerializer
 from djstripe.enums import SubscriptionStatus
-from djstripe.models import Customer, Plan
-from tests import FAKE_PLAN, FAKE_CUSTOMER
+from djstripe.models import Plan
+
+from .. import FAKE_CUSTOMER, FAKE_PLAN
 
 
 class SubscriptionSerializerTest(TestCase):
 
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="pydanny", email="pydanny@gmail.com")
-        self.customer = Customer.objects.create(subscriber=self.user, stripe_id=FAKE_CUSTOMER["id"], livemode=False)
+        self.customer = FAKE_CUSTOMER.create_for_user(self.user)
         self.plan = Plan.sync_from_stripe_data(deepcopy(FAKE_PLAN))
 
     def test_valid_serializer(self):

@@ -6,6 +6,7 @@
 
 .. moduleauthor:: Bill Huneke (@wahuneke)
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import decimal
 
@@ -15,6 +16,7 @@ from django.db import models
 
 from .settings import USE_NATIVE_JSONFIELD
 from .utils import convert_tstamp, dict_nested_accessor
+
 
 if USE_NATIVE_JSONFIELD:
     from django.contrib.postgres.fields import JSONField

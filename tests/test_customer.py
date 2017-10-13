@@ -8,24 +8,25 @@
 .. moduleauthor:: Lee Skillen (@lskillen)
 
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-from copy import deepcopy
 import decimal
+from copy import deepcopy
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
-from mock import patch, ANY
+from mock import ANY, patch
 from stripe.error import InvalidRequestError
 
 from djstripe.exceptions import MultipleSubscriptionException
-from djstripe.models import Account, Coupon, Customer, Charge, Card, Subscription, Invoice, Plan
-from tests import (
-    FAKE_ACCOUNT, FAKE_CARD, FAKE_CARD_V, FAKE_CHARGE, FAKE_COUPON, FAKE_CUSTOMER,
-    FAKE_CUSTOMER_II, FAKE_DISCOUNT_CUSTOMER, FAKE_INVOICE, FAKE_INVOICEITEM,
-    FAKE_INVOICE_III, FAKE_PLAN, FAKE_SUBSCRIPTION, FAKE_SUBSCRIPTION_II,
-    FAKE_UPCOMING_INVOICE, StripeList, datetime_to_unix
+from djstripe.models import Account, Card, Charge, Coupon, Customer, Invoice, Plan, Subscription
+
+from . import (
+    FAKE_ACCOUNT, FAKE_CARD, FAKE_CARD_V, FAKE_CHARGE, FAKE_COUPON, FAKE_CUSTOMER, FAKE_CUSTOMER_II,
+    FAKE_DISCOUNT_CUSTOMER, FAKE_INVOICE, FAKE_INVOICE_III, FAKE_INVOICEITEM, FAKE_PLAN,
+    FAKE_SUBSCRIPTION, FAKE_SUBSCRIPTION_II, FAKE_UPCOMING_INVOICE, StripeList, datetime_to_unix
 )
 
 
@@ -33,7 +34,7 @@ class TestCustomer(TestCase):
 
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="pydanny", email="pydanny@gmail.com")
-        self.customer = Customer.objects.create(subscriber=self.user, stripe_id=FAKE_CUSTOMER["id"], livemode=False)
+        self.customer = FAKE_CUSTOMER.create_for_user(self.user)
 
         self.card, _created = Card._get_or_create_from_stripe_object(data=FAKE_CARD)
 
@@ -43,9 +44,11 @@ class TestCustomer(TestCase):
         self.account = Account.objects.create()
 
     def test_str(self):
-        self.assertEqual("<{subscriber}, email={email}, stripe_id={stripe_id}>".format(
-            subscriber=str(self.user), email=self.user.email, stripe_id=FAKE_CUSTOMER["id"]
-        ), str(self.customer))
+        self.assertEqual(str(self.customer), self.user.email)
+        self.customer.subscriber.email = ""
+        self.assertEqual(str(self.customer), self.customer.stripe_id)
+        self.customer.subscriber = None
+        self.assertEqual(str(self.customer), "{stripe_id} (deleted)".format(stripe_id=self.customer.stripe_id))
 
     def test_customer_dashboard_url(self):
         expected_url = "https://dashboard.stripe.com/test/customers/{}".format(self.customer.stripe_id)
@@ -63,10 +66,7 @@ class TestCustomer(TestCase):
         fake_customer["default_source"]["object"] = fake_customer["sources"]["data"][0]["object"] = "fish"
 
         user = get_user_model().objects.create_user(username="test_user_sync_unsupported_source")
-        customer = Customer.objects.create(subscriber=user, stripe_id=FAKE_CUSTOMER_II["id"], livemode=False)
-        self.assertEqual(0, customer.sources.count())
-
-        synced_customer = Customer.sync_from_stripe_data(fake_customer)
+        synced_customer = fake_customer.create_for_user(user)
         self.assertEqual(0, synced_customer.sources.count())
         self.assertEqual(None, synced_customer.default_source)
 
@@ -94,8 +94,7 @@ class TestCustomer(TestCase):
         fake_customer["id"] = fake_customer["sources"]["data"][0]["customer"] = "cus_test_sync_non_local_card"
 
         user = get_user_model().objects.create_user(username="test_user_sync_non_local_card")
-        Customer.objects.create(subscriber=user, stripe_id=fake_customer["id"], livemode=False)
-        customer = Customer.sync_from_stripe_data(fake_customer)
+        customer = fake_customer.create_for_user(user)
 
         self.assertEqual(customer.sources.count(), 1)
         self.assertEqual(customer.default_source.stripe_id, fake_customer["default_source"]["id"])
@@ -107,8 +106,7 @@ class TestCustomer(TestCase):
         fake_customer["sources"] = None
 
         user = get_user_model().objects.create_user(username="test_user_sync_non_local_card")
-        Customer.objects.create(subscriber=user, stripe_id=fake_customer["id"], livemode=False)
-        customer = Customer.sync_from_stripe_data(fake_customer)
+        customer = fake_customer.create_for_user(user)
 
         self.assertEqual(customer.sources.count(), 0)
         self.assertEqual(customer.default_source, None)
@@ -154,7 +152,7 @@ class TestCustomer(TestCase):
 
         customer_retrieve_mock.assert_called_with(id=self.customer.stripe_id, api_key=settings.STRIPE_SECRET_KEY,
                                                   expand=['default_source'])
-        self.assertEqual(2, customer_retrieve_mock.call_count)
+        self.assertEqual(3, customer_retrieve_mock.call_count)
 
     @patch("stripe.Customer.retrieve")
     def test_customer_delete_raises_unexpected_exception(self, customer_retrieve_mock):
@@ -189,7 +187,7 @@ class TestCustomer(TestCase):
     def test_add_card_set_default_false_with_single_card_still_becomes_default(self, customer_retrieve_mock):
         self.customer.add_card(FAKE_CARD["id"], set_default=False)
 
-        self.assertEqual(1, Card.objects.count())
+        self.assertEqual(2, Card.objects.count())
         self.assertEqual(FAKE_CARD["id"], self.customer.default_source.stripe_id)
 
     @patch("stripe.Customer.retrieve", return_value=deepcopy(FAKE_CUSTOMER))
@@ -715,7 +713,6 @@ class TestCustomer(TestCase):
         self.user.delete()
         customer = Customer.objects.get(stripe_id=FAKE_CUSTOMER["id"])
         self.assertIsNotNone(customer.date_purged)
-        self.assertEqual(["(deleted)", "stripe_id=cus_6lsBvm5rJ0zyHc"], customer.str_parts())
 
     @patch("stripe.Customer.retrieve")
     def test_delete_subscriber_without_customer_is_noop(self, customer_retrieve_mock):

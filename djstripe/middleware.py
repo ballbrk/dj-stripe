@@ -8,14 +8,17 @@
 
 .. moduleauthor:: @kavdev, @pydanny, @wahuneke
 """
-from django.conf import settings
-from django.shortcuts import redirect
-from django.urls import resolve
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import fnmatch
 
+from django.conf import settings
+from django.shortcuts import redirect
+from django.urls import resolve
+from django.utils.deprecation import MiddlewareMixin
+
+from .settings import SUBSCRIPTION_REDIRECT, subscriber_request_callback
 from .utils import subscriber_has_active_subscription
-from .settings import subscriber_request_callback, SUBSCRIPTION_REDIRECT
 
 
 DJSTRIPE_SUBSCRIPTION_REQUIRED_EXCEPTION_URLS = getattr(
@@ -30,7 +33,7 @@ EXEMPT = list(DJSTRIPE_SUBSCRIPTION_REQUIRED_EXCEPTION_URLS)
 EXEMPT.append("[djstripe]")
 
 
-class SubscriptionPaymentMiddleware(object):
+class SubscriptionPaymentMiddleware(MiddlewareMixin):
     """
     Used to redirect users from subcription-locked request destinations.
 

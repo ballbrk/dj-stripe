@@ -5,24 +5,26 @@
 .. moduleauthor:: Alex Kavanaugh (@kavdev)
 
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.test.testcases import TestCase
 from mock import patch
 
 from djstripe.enums import SourceType
-from djstripe.models import Charge, Customer, Account
-from tests import FAKE_TRANSFER, FAKE_CUSTOMER
+from djstripe.models import Account, Charge
 
-from . import FAKE_CHARGE, FAKE_ACCOUNT
+from . import FAKE_ACCOUNT, FAKE_CHARGE, FAKE_CUSTOMER, FAKE_TRANSFER
 
 
 class ChargeTest(TestCase):
 
     def setUp(self):
-        self.customer = Customer.objects.create(stripe_id=FAKE_CUSTOMER["id"], livemode=False)
+        self.user = get_user_model().objects.create_user(username="user", email="user@example.com")
+        self.customer = FAKE_CUSTOMER.create_for_user(self.user)
         self.account = Account.objects.create()
 
     def test_str(self):

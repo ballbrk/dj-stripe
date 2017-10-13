@@ -6,19 +6,19 @@
 
 .. moduleauthor:: @kavdev, @pydanny, @lskillen, and @chrissmejia
 """
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
+import stripe
 from django.apps import apps as django_apps
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import six
 from django.utils.module_loading import import_string
 
-import stripe
-
 from .checks import validate_stripe_api_version
 
-DEFAULT_STRIPE_API_VERSION = '2017-02-14'
+
+DEFAULT_STRIPE_API_VERSION = "2017-06-05"
 
 
 def get_callback_function(setting_name, default=None):
@@ -69,7 +69,6 @@ get_idempotency_key = get_callback_function("DJSTRIPE_IDEMPOTENCY_KEY_CALLBACK",
 USE_NATIVE_JSONFIELD = getattr(settings, "DJSTRIPE_USE_NATIVE_JSONFIELD", False)
 
 PRORATION_POLICY = getattr(settings, 'DJSTRIPE_PRORATION_POLICY', False)
-PRORATION_POLICY_FOR_UPGRADES = getattr(settings, 'DJSTRIPE_PRORATION_POLICY_FOR_UPGRADES', False)
 CANCELLATION_AT_PERIOD_END = not getattr(settings, 'DJSTRIPE_PRORATION_POLICY', False)
 
 DJSTRIPE_WEBHOOK_URL = getattr(settings, "DJSTRIPE_WEBHOOK_URL", r"^webhook/$")

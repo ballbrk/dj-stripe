@@ -8,7 +8,7 @@
 
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -16,8 +16,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ...models import Customer
-from ...settings import subscriber_request_callback, CANCELLATION_AT_PERIOD_END
-from .serializers import SubscriptionSerializer, CreateSubscriptionSerializer
+from ...settings import CANCELLATION_AT_PERIOD_END, subscriber_request_callback
+from .serializers import CreateSubscriptionSerializer, SubscriptionSerializer
 
 
 class SubscriptionRestView(APIView):
@@ -31,13 +31,12 @@ class SubscriptionRestView(APIView):
 
         Returns with status code 200.
         """
-        try:
-            customer, _created = Customer.get_or_create(subscriber=subscriber_request_callback(self.request))
+        customer, _created = Customer.get_or_create(
+            subscriber=subscriber_request_callback(self.request),
+        )
 
-            serializer = SubscriptionSerializer(customer.subscription)
-            return Response(serializer.data)
-        except:
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        serializer = SubscriptionSerializer(customer.subscription)
+        return Response(serializer.data)
 
     def post(self, request, **kwargs):
         """

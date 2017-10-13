@@ -6,6 +6,7 @@
 .. moduleauthor:: Alex Kavanaugh (@kavdev)
 
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from copy import deepcopy
 
@@ -14,10 +15,10 @@ from django.test.testcases import TestCase
 from django.urls import reverse
 from mock import patch
 
-from djstripe.models import Customer, Subscription, Plan
-from tests import (
-    FAKE_CUSTOMER, FAKE_PLAN, FAKE_SUBSCRIPTION,
-    FAKE_SUBSCRIPTION_CANCELED, FAKE_SUBSCRIPTION_CANCELED_AT_PERIOD_END
+from djstripe.models import Customer, Plan, Subscription
+
+from . import (
+    FAKE_CUSTOMER, FAKE_PLAN, FAKE_SUBSCRIPTION, FAKE_SUBSCRIPTION_CANCELED, FAKE_SUBSCRIPTION_CANCELED_AT_PERIOD_END
 )
 
 
@@ -31,10 +32,13 @@ class CancelSubscriptionViewTest(TestCase):
             password="password"
         )
         self.assertTrue(self.client.login(username="pydanny", password="password"))
+        stripe_customer = Customer.sync_from_stripe_data(FAKE_CUSTOMER)
+        stripe_customer.subscriber = self.user
+        stripe_customer.save()
 
-    @patch("djstripe.stripe_objects.StripeSubscription.cancel", return_value=FAKE_SUBSCRIPTION_CANCELED)
-    def test_cancel(self, cancel_subscription_mock):
-        Customer.objects.create(subscriber=self.user, stripe_id=FAKE_CUSTOMER["id"], livemode=False)
+    @patch("stripe.Customer.retrieve", return_value=deepcopy(FAKE_CUSTOMER))
+    @patch("djstripe.models.Subscription._api_delete", return_value=FAKE_SUBSCRIPTION_CANCELED)
+    def test_cancel(self, cancel_subscription_mock, customer_retrieve_mock):
         Subscription.sync_from_stripe_data(FAKE_SUBSCRIPTION)
 
         response = self.client.post(self.url)
@@ -43,9 +47,9 @@ class CancelSubscriptionViewTest(TestCase):
         self.assertRedirects(response, reverse("home"))
         self.assertTrue(self.user.is_authenticated)
 
-    @patch("djstripe.stripe_objects.StripeSubscription.cancel", return_value=FAKE_SUBSCRIPTION_CANCELED_AT_PERIOD_END)
-    def test_cancel_at_period_end(self, cancel_subscription_mock):
-        Customer.objects.create(subscriber=self.user, stripe_id=FAKE_CUSTOMER["id"], livemode=False)
+    @patch("stripe.Customer.retrieve", return_value=deepcopy(FAKE_CUSTOMER))
+    @patch("djstripe.models.Subscription._api_delete", return_value=FAKE_SUBSCRIPTION_CANCELED_AT_PERIOD_END)
+    def test_cancel_at_period_end(self, cancel_subscription_mock, customer_retrieve_mock):
         Subscription.sync_from_stripe_data(FAKE_SUBSCRIPTION)
 
         response = self.client.post(self.url)
@@ -54,9 +58,9 @@ class CancelSubscriptionViewTest(TestCase):
         self.assertRedirects(response, reverse("home"))
         self.assertTrue(self.user.is_authenticated)
 
-    @patch("djstripe.stripe_objects.StripeSubscription.cancel", return_value=FAKE_SUBSCRIPTION_CANCELED)
-    def test_cancel_next_url(self, cancel_subscription_mock):
-        Customer.objects.create(subscriber=self.user, stripe_id=FAKE_CUSTOMER["id"], livemode=False)
+    @patch("stripe.Customer.retrieve", return_value=deepcopy(FAKE_CUSTOMER))
+    @patch("djstripe.models.Subscription._api_delete", return_value=FAKE_SUBSCRIPTION_CANCELED)
+    def test_cancel_next_url(self, cancel_subscription_mock, customer_retrieve_mock):
         Subscription.sync_from_stripe_data(FAKE_SUBSCRIPTION)
 
         response = self.client.post(self.url + "?next=/test")
@@ -66,10 +70,9 @@ class CancelSubscriptionViewTest(TestCase):
 
         self.assertTrue(get_user(self.client).is_anonymous)
 
-    @patch("djstripe.stripe_objects.StripeSubscription.cancel")
-    def test_cancel_no_subscription(self, cancel_subscription_mock):
-        Customer.objects.create(subscriber=self.user, stripe_id=FAKE_CUSTOMER["id"], livemode=False)
-
+    @patch("stripe.Customer.retrieve", return_value=deepcopy(FAKE_CUSTOMER))
+    @patch("djstripe.models.Subscription._api_delete")
+    def test_cancel_no_subscription(self, cancel_subscription_mock, customer_retrieve_mock):
         response = self.client.post(self.url)
 
         cancel_subscription_mock.assert_not_called()

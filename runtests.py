@@ -1,9 +1,11 @@
-from argparse import ArgumentParser
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import os
 import sys
+from argparse import ArgumentParser
 
-from coverage import Coverage
 import django
+from coverage import Coverage
 from django.conf import settings
 from termcolor import colored
 
@@ -43,9 +45,9 @@ def run_test_suite(args):
             "default": {
                 "ENGINE": "django.db.backends.postgresql_psycopg2",
                 "NAME": "djstripe",
-                "USER": "",
+                "USER": "postgres",
                 "PASSWORD": "",
-                "HOST": "",
+                "HOST": "localhost",
                 "PORT": "",
             },
         },
